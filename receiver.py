@@ -4,20 +4,14 @@ import os
 import json
 from influxdb import InfluxDBClient
 
+#
+# Write values to the influxdb
+# Tags: SensorID
+# fields: all types defined in the message from rabbitmq
+# measurement is called "HackZurich16"
+# DB is called "HackZurich16"
+
 def writeInflux(db, msg):
-#    json_body = [
-#        {
-#            "measurement": "cpu_load_short",
-#            "tags": {
-#                "host": "server01",
-#                "region": "us-west"
-#            },
-#            "time": "2009-11-10T23:00:00Z",
-#            "fields": {
-#                "value": 0.64
-#            }
-#        }
-#    ]
     data = msg['data']
     myPoint = []
     myDB = {}
@@ -37,17 +31,33 @@ def writeInflux(db, msg):
     db.write_points(myPoint)
 #    return myDB
 
-host = os.environ.get('HOST_RABBITMQ')
-if host == None:
+#
+# Reading environment variables for the message queue and influxdb
+# HOST_INFLUXDB and HOST_RABBITMQ
+# not tested yet
+host_rabbit = None
+host_rabbit = os.environ.get('HOST_RABBITMQ')
+if host_rabbit == None:
+    print "No Environment Variable HOST_RABBITMQ found, defaulting to 192.168.99.100"
     host_rabbit = "192.168.99.100"
-host = os.environ.get('HOST_INFLUXDB')
-if host == None:
+host_influxdb = None
+host_influxdb = os.environ.get('HOST_INFLUXDB')
+if host_influxdb == None:
+    print "No Environment Variable HOST_INFLUXD found, defaulting to 192.168.99.100"
     host_influxdb = "192.168.99.100"
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host="192.168.99.100"))
-channel = connection.channel()
+#
+# Connecting to RabbitMQ
+# and aquire channel "HackZurich16"
+#
 
+connection = pika.BlockingConnection(pika.ConnectionParameters(host=host_rabbit))
+channel = connection.channel()
 channel.queue_declare(queue='HackZurich16')
+
+#
+# Connecting to InluxDB
+#
 
 db = InfluxDBClient(host_influxdb, "8086", "root", "root", "HackZurich")
 db.create_database("HackZurich16")
